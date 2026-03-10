@@ -4,20 +4,19 @@ Aplicacao front-end desenvolvida com React e Vite para gestao de agenda, cliente
 
 ## Tecnologias
 
-- React 18
-- React Router 7
-- Vite 6
-- Tailwind CSS 4
+- React
+- React Router
+- Vite
+- Tailwind CSS
 - Componentes baseados em Radix UI/shadcn
 
 ## Pre-requisitos
 
-- Node.js 20 ou superior
-- npm 10 ou superior
-
+- Node.js
+- npm 10
 ## Como executar o projeto
 
-1. Abra um terminal na pasta do projeto (onde esta o arquivo package.json).
+1. Abrir um terminal na pasta do projeto (onde esta o arquivo package.json).
 2. Instale as dependencias:
 
 ```bash
