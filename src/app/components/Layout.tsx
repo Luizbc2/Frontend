@@ -1,180 +1,259 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { useState } from "react";
 import {
-  Calendar,
-  Clock,
-  List,
-  Users,
-  Scissors,
-  Package,
-  CreditCard,
-  User,
+  CalendarDays,
   ChevronDown,
+  Clock3,
+  CreditCard,
+  List,
   LogOut,
   Menu,
+  Package,
+  PanelsTopLeft,
+  Plus,
+  Scissors,
+  Sparkles,
+  User,
+  Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
+
 import { Button } from "./ui/button";
+import { cn } from "./ui/utils";
+
+type NavigationItem = {
+  label: string;
+  path?: string;
+  icon: LucideIcon;
+  badge?: string;
+  disabled?: boolean;
+};
+
+const agendaItems: NavigationItem[] = [
+  { label: "Timeline", path: "/agenda/timeline", icon: Clock3 },
+  { label: "Lista", path: "/agenda/lista", icon: List },
+];
+
+const navigationGroups: Array<{ title: string; items: NavigationItem[] }> = [
+  {
+    title: "Operacao",
+    items: [
+      { label: "Clientes", path: "/clientes", icon: Users },
+      { label: "Profissionais", path: "/profissionais", icon: Scissors },
+      { label: "Servicos", path: "/servicos", icon: Package },
+      { label: "Em breve", icon: Sparkles, badge: "soon", disabled: true },
+    ],
+  },
+  {
+    title: "Crescimento",
+    items: [
+      { label: "Planos clientes", path: "/planos-clientes", icon: PanelsTopLeft },
+      { label: "Assinatura", path: "/assinatura", icon: CreditCard },
+    ],
+  },
+  {
+    title: "Conta",
+    items: [{ label: "Perfil", path: "/perfil", icon: User }],
+  },
+];
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [agendaExpanded, setAgendaExpanded] = useState(true);
+  const currentPath = location.pathname === "/" ? "/agenda/timeline" : location.pathname;
+  const [agendaExpanded, setAgendaExpanded] = useState(currentPath.startsWith("/agenda/"));
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const agendaOpen = agendaExpanded || currentPath.startsWith("/agenda/");
+  const workspaceDate = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+  }).format(new Date());
 
   const isActive = (path: string) => {
-    return location.pathname === path || (path === "/" && location.pathname === "/agenda/timeline");
+    return currentPath === path;
   };
 
   const handleLogout = () => {
     navigate("/");
   };
 
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
+  const renderNavigationItem = (item: NavigationItem) => {
+    const Icon = item.icon;
+
+    if (!item.path || item.disabled) {
+      return (
+        <button
+          key={item.label}
+          type="button"
+          disabled
+          className="flex w-full items-center justify-between rounded-[1rem] border border-transparent px-3 py-3 text-left text-sm text-sidebar-foreground/60 transition-all duration-300 disabled:cursor-not-allowed"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[0.95rem] bg-white/6 text-sidebar-primary">
+              <Icon className="h-4 w-4" />
+            </span>
+            <span>{item.label}</span>
+          </span>
+          {item.badge ? (
+            <span className="rounded-full border border-white/10 bg-white/6 px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.24em] text-sidebar-foreground/65">
+              {item.badge}
+            </span>
+          ) : null}
+        </button>
+      );
+    }
+
+    const active = isActive(item.path);
+
+    return (
+      <Link
+        key={item.label}
+        to={item.path}
+        onClick={closeSidebar}
+        className={cn(
+          "group flex items-center justify-between rounded-[1rem] border px-3 py-3 text-sm transition-all duration-300",
+          active
+            ? "border-white/10 bg-[linear-gradient(135deg,rgba(89,184,171,0.22),rgba(89,184,171,0.08))] text-white shadow-[0_22px_45px_-30px_rgba(89,184,171,0.9)]"
+            : "border-transparent text-sidebar-foreground/82 hover:border-white/8 hover:bg-white/6 hover:text-white",
+        )}
+      >
+        <span className="flex items-center gap-3">
+          <span
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-[0.95rem] transition-colors duration-300",
+              active
+                ? "bg-white/12 text-white"
+                : "bg-white/6 text-sidebar-primary group-hover:bg-white/10 group-hover:text-white",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+          <span>{item.label}</span>
+        </span>
+        {item.badge ? (
+          <span className="rounded-full border border-white/10 bg-white/6 px-2.5 py-1 text-[0.65rem] uppercase tracking-[0.24em] text-sidebar-foreground/65">
+            {item.badge}
+          </span>
+        ) : null}
+      </Link>
+    );
+  };
+
   const SidebarContent = () => (
-    <div className="h-full flex flex-col bg-[#1a1a1a] text-white">
-      {/* Logo */}
-      <div className="p-6 border-b border-gray-800">
-        <div className="flex items-center gap-2 mb-3">
-          <Calendar className="w-6 h-6 text-[#4a9d9d]" />
-          <h1 className="font-serif text-2xl">Horarius</h1>
+    <div className="relative flex h-full flex-col overflow-hidden px-5 py-6 text-sidebar-foreground">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top,rgba(89,184,171,0.28),transparent_60%)]" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(211,140,86,0.16),transparent_72%)] blur-3xl" />
+
+      <div className="relative rounded-[1.6rem] border border-white/8 bg-white/5 p-5 shadow-[0_24px_70px_-34px_rgba(0,0,0,0.85)] backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,rgba(89,184,171,0.95),rgba(53,98,92,0.9))] text-sidebar-primary-foreground shadow-[0_20px_38px_-20px_rgba(89,184,171,0.85)]">
+            <CalendarDays className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[0.72rem] uppercase tracking-[0.3em] text-sidebar-foreground/55">
+              Studio planner
+            </p>
+            <h1 className="font-[var(--font-display)] text-3xl leading-none">Horarius</h1>
+          </div>
         </div>
-        <p className="text-sm text-gray-400">LUIZ TESTE 1</p>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-[1.1rem] border border-white/8 bg-black/14 px-3 py-3">
+            <p className="text-[0.65rem] uppercase tracking-[0.24em] text-sidebar-foreground/48">
+              Workspace
+            </p>
+            <p className="mt-2 text-sm text-white">Luiz Teste 1</p>
+          </div>
+          <div className="rounded-[1.1rem] border border-white/8 bg-black/14 px-3 py-3">
+            <p className="text-[0.65rem] uppercase tracking-[0.24em] text-sidebar-foreground/48">
+              Hoje
+            </p>
+            <p className="mt-2 text-sm capitalize text-white">{workspaceDate}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4">
-        {/* Operação Section */}
-        <div className="mb-6">
-          <p className="text-xs text-gray-500 mb-3 px-2">OPERAÇÃO</p>
-          
-          {/* Agenda */}
-          <div className="mb-1">
+      <nav className="relative mt-6 flex-1 space-y-6 overflow-y-auto pr-1">
+        <div className="space-y-2">
+          <p className="px-2 text-[0.7rem] uppercase tracking-[0.32em] text-sidebar-foreground/45">
+            Agenda
+          </p>
+          <div className="rounded-[1.4rem] border border-white/8 bg-white/4 p-2">
             <button
               onClick={() => setAgendaExpanded(!agendaExpanded)}
-              className="w-full flex items-center justify-between px-2 py-2 text-sm hover:bg-gray-800 rounded"
+              className="flex w-full items-center justify-between rounded-[1rem] px-3 py-3 text-sm text-sidebar-foreground transition-colors hover:bg-white/6"
             >
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[0.95rem] bg-white/6 text-sidebar-primary">
+                  <CalendarDays className="h-4 w-4" />
+                </span>
                 <span>Agenda</span>
               </div>
-              <ChevronDown className={`w-4 h-4 transition-transform ${agendaExpanded ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform duration-300",
+                  agendaOpen ? "rotate-180" : "",
+                )}
+              />
             </button>
-            
-            {agendaExpanded && (
-              <div className="ml-6 mt-1 space-y-1">
-                <Link
-                  to="/agenda/timeline"
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-2 px-2 py-2 text-sm rounded ${
-                    isActive("/agenda/timeline") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-                  }`}
-                >
-                  <Clock className="w-4 h-4" />
-                  <span>Timeline</span>
-                </Link>
-                <Link
-                  to="/agenda/lista"
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-2 px-2 py-2 text-sm rounded ${
-                    isActive("/agenda/lista") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  <span>Lista</span>
-                </Link>
+            {agendaOpen ? (
+              <div className="mt-1 space-y-1.5 px-1 pb-1">
+                {agendaItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path ?? "/agenda/timeline"}
+                      onClick={closeSidebar}
+                      className={cn(
+                        "flex items-center gap-3 rounded-[1rem] border px-3 py-3 text-sm transition-all duration-300",
+                        isActive(item.path ?? "")
+                          ? "border-white/10 bg-[linear-gradient(135deg,rgba(89,184,171,0.22),rgba(89,184,171,0.08))] text-white shadow-[0_20px_40px_-30px_rgba(89,184,171,0.9)]"
+                          : "border-transparent text-sidebar-foreground/78 hover:border-white/8 hover:bg-white/6 hover:text-white",
+                      )}
+                    >
+                      <span className="flex h-9 w-9 items-center justify-center rounded-[0.95rem] bg-white/6 text-sidebar-primary">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
-            )}
+            ) : null}
           </div>
-
-          <Link
-            to="/clientes"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2 px-2 py-2 text-sm rounded mb-1 ${
-              isActive("/clientes") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Clientes</span>
-          </Link>
-
-          <Link
-            to="/profissionais"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2 px-2 py-2 text-sm rounded mb-1 ${
-              isActive("/profissionais") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-            }`}
-          >
-            <Scissors className="w-4 h-4" />
-            <span>Profissionais</span>
-          </Link>
-
-          <Link
-            to="/servicos"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2 px-2 py-2 text-sm rounded mb-1 ${
-              isActive("/servicos") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-            }`}
-          >
-            <Package className="w-4 h-4" />
-            <span>Serviços</span>
-          </Link>
-
-          <button className="flex items-center justify-between w-full px-2 py-2 text-sm hover:bg-gray-800 rounded">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>Em breve</span>
-            </div>
-            <ChevronDown className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Crescimento Section */}
-        <div className="mb-6">
-          <p className="text-xs text-gray-500 mb-3 px-2">CRESCIMENTO</p>
-          <Link
-            to="/assinatura"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2 px-2 py-2 text-sm rounded ${
-              isActive("/assinatura") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Assinatura</span>
-          </Link>
-        </div>
-
-        {/* Conta Section */}
-        <div>
-          <p className="text-xs text-gray-500 mb-3 px-2">CONTA</p>
-          <Link
-            to="/perfil"
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2 px-2 py-2 text-sm rounded ${
-              isActive("/perfil") ? "bg-[#4a9d9d] text-white" : "hover:bg-gray-800"
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>Perfil</span>
-          </Link>
-        </div>
+        {navigationGroups.map((group) => (
+          <div key={group.title} className="space-y-2">
+            <p className="px-2 text-[0.7rem] uppercase tracking-[0.32em] text-sidebar-foreground/45">
+              {group.title}
+            </p>
+            <div className="space-y-1.5">{group.items.map(renderNavigationItem)}</div>
+          </div>
+        ))}
       </nav>
 
-      {/* User Footer */}
-      <div className="p-4 border-t border-gray-800">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 bg-[#4a9d9d] rounded-full flex items-center justify-center">
-            <User className="w-5 h-5" />
+      <div className="relative mt-6 rounded-[1.5rem] border border-white/8 bg-white/6 p-4 shadow-[0_22px_60px_-34px_rgba(0,0,0,0.88)] backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,rgba(89,184,171,0.96),rgba(53,98,92,0.9))] text-sidebar-primary-foreground shadow-[0_18px_36px_-22px_rgba(89,184,171,0.9)]">
+            <User className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm truncate">Luiz Teste 1</p>
-            <p className="text-xs text-gray-400 truncate">luiz@teste.com</p>
+            <p className="truncate text-sm text-white">Luiz Teste 1</p>
+            <p className="truncate text-xs text-sidebar-foreground/55">luiz@teste.com</p>
           </div>
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 px-2 py-2 text-sm hover:bg-gray-800 rounded w-full"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-[1rem] border border-white/8 bg-black/18 px-4 py-3 text-sm text-sidebar-foreground transition-colors hover:bg-white/8 hover:text-white"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="h-4 w-4" />
           <span>Sair</span>
         </button>
       </div>
@@ -182,50 +261,62 @@ export function Layout() {
   );
 
   return (
-    <div className="flex h-screen bg-[#f5f1e8]">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 border-r border-gray-200">
-        <SidebarContent />
+    <div className="relative flex min-h-screen bg-transparent lg:p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(circle_at_top,rgba(89,184,171,0.14),transparent_65%)]" />
+
+      <aside className="hidden lg:block lg:w-[18.5rem] xl:w-[19.5rem]">
+        <div className="sticky top-4 h-[calc(100vh-2rem)] rounded-[2rem] border border-sidebar-border bg-[linear-gradient(180deg,rgba(12,15,17,0.98),rgba(18,24,28,0.94))] shadow-[0_40px_120px_-56px_rgba(0,0,0,0.95)]">
+          <SidebarContent />
+        </div>
       </aside>
 
-      {/* Mobile Sidebar */}
       {sidebarOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 z-40 bg-black/45 backdrop-blur-sm lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="lg:hidden fixed inset-y-0 left-0 w-64 z-50">
+          <aside className="fixed inset-y-3 left-3 z-50 w-[min(21rem,calc(100vw-1.5rem))] rounded-[2rem] border border-sidebar-border bg-[linear-gradient(180deg,rgba(12,15,17,0.98),rgba(18,24,28,0.94))] shadow-[0_40px_120px_-56px_rgba(0,0,0,0.95)] lg:hidden">
             <SidebarContent />
           </aside>
         </>
       )}
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-[#1a1a1a] text-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-[#4a9d9d]" />
-            <h1 className="font-serif text-xl">Horarius</h1>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="px-4 pt-4 lg:hidden">
+          <div className="flex items-center justify-between rounded-[1.5rem] border border-white/70 bg-white/70 px-4 py-3 shadow-[0_24px_60px_-34px_rgba(73,47,22,0.35)] backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[linear-gradient(135deg,rgba(89,184,171,0.96),rgba(31,109,104,0.92))] text-primary-foreground shadow-[0_18px_38px_-20px_rgba(31,109,104,0.9)]">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.28em] text-muted-foreground">Studio planner</p>
+                <h1 className="font-[var(--font-display)] text-2xl leading-none text-foreground">Horarius</h1>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="border-white/70 bg-white/72"
+            >
+              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-white hover:bg-gray-800"
-          >
-            {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </Button>
-        </div>
+        </header>
 
-        <Outlet />
+        <main className="flex-1 overflow-x-hidden pb-24">
+          <Outlet />
+        </main>
 
-        {/* Floating Action Button */}
-        <button className="fixed bottom-6 right-6 w-14 h-14 bg-[#4a9d9d] hover:bg-[#3d8585] text-white rounded-full shadow-lg flex items-center justify-center transition-colors">
-          <span className="text-2xl">+</span>
+        <button
+          type="button"
+          className="fixed right-5 bottom-5 z-30 flex h-15 w-15 items-center justify-center rounded-[1.35rem] border border-white/65 bg-[linear-gradient(135deg,var(--color-primary),color-mix(in_srgb,var(--color-primary)_78%,black))] text-primary-foreground shadow-[0_28px_60px_-26px_rgba(31,109,104,0.92)] transition-transform duration-300 hover:-translate-y-1 lg:right-8 lg:bottom-8"
+          aria-label="Criar novo item"
+        >
+          <Plus className="h-6 w-6" />
         </button>
-      </main>
+      </div>
     </div>
   );
 }
