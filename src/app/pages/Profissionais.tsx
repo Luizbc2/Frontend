@@ -22,7 +22,7 @@ const stats = [
 const professionals = [
   {
     id: 1,
-    name: "Fodedor",
+    name: "João",
     avatar: "F",
     specialties: ["Corte", "Barba", "Pigmentação"],
     phone: "(11) 98765-4321",

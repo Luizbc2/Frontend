@@ -54,7 +54,7 @@ const appointments = [
     time: "10:00",
     client: "João Silva",
     service: "Corte + Barba",
-    professional: "Fodedor",
+    professional: "João",
     status: "confirmado",
   },
   {
@@ -63,7 +63,7 @@ const appointments = [
     time: "14:30",
     client: "Pedro Santos",
     service: "Corte Simples",
-    professional: "Fodedor",
+    professional: "João",
     status: "pendente",
   },
   {
@@ -72,7 +72,7 @@ const appointments = [
     time: "09:00",
     client: "Carlos Oliveira",
     service: "Barba",
-    professional: "Fodedor",
+    professional: "João",
     status: "confirmado",
   },
   {
@@ -81,7 +81,7 @@ const appointments = [
     time: "15:00",
     client: "Rafael Costa",
     service: "Corte + Barba",
-    professional: "Fodedor",
+    professional: "João",
     status: "cancelado",
   },
 ] satisfies Appointment[];
@@ -190,7 +190,7 @@ export function AgendaLista() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos profissionais</SelectItem>
-              <SelectItem value="fodedor">Fodedor</SelectItem>
+              <SelectItem value="João">João</SelectItem>
             </SelectContent>
           </Select>
 

@@ -45,7 +45,7 @@ const appointments = [
     time: "10:00",
     client: "João Silva",
     service: "Corte + Barba",
-    professional: "Fodedor",
+    professional: "João",
     status: "confirmado",
     duration: 1
   },
@@ -54,7 +54,7 @@ const appointments = [
     time: "14:30",
     client: "Pedro Santos",
     service: "Corte Simples",
-    professional: "Fodedor",
+    professional: "João",
     status: "pendente",
     duration: 1
   }
@@ -198,7 +198,7 @@ export function AgendaTimeline() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="fodedor">Fodedor</SelectItem>
+                <SelectItem value="João">João</SelectItem>
               </SelectContent>
             </Select>
 
@@ -239,7 +239,7 @@ export function AgendaTimeline() {
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                     Profissional
                   </p>
-                  <p className="mt-2 text-lg text-foreground">Fodedor</p>
+                  <p className="mt-2 text-lg text-foreground">João</p>
                 </div>
               </div>
 

@@ -458,7 +458,7 @@
   }
 
   .soft-badge {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em];
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold leading-none uppercase tracking-[0.18em];
     border: 1px solid rgba(31, 109, 104, 0.14);
     background: rgba(31, 109, 104, 0.08);
     color: rgba(18, 78, 74, 0.94);
@@ -489,7 +489,8 @@
   }
 
   .status-dot {
-    @apply inline-block h-2.5 w-2.5 rounded-full;
+    @apply block h-2.5 w-2.5 shrink-0 rounded-full;
+    align-self: center;
     background: currentColor;
     box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 14%, transparent);
   }
