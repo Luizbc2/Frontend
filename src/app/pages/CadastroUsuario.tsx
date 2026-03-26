@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
 const SIGNUP_STORAGE_KEY = "horarius:last-signup";
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type SignupFormData = {
   name: string;
@@ -14,6 +15,15 @@ type SignupFormData = {
   cpf: string;
   password: string;
   confirmPassword: string;
+};
+
+type SignupFormErrors = {
+  name?: string;
+  email?: string;
+  cpf?: string;
+  password?: string;
+  confirmPassword?: string;
+  submit?: string;
 };
 
 const initialFormData: SignupFormData = {
@@ -24,36 +34,133 @@ const initialFormData: SignupFormData = {
   confirmPassword: "",
 };
 
+function normalizeCpf(value: string) {
+  return value.replace(/\D/g, "").slice(0, 11);
+}
+
+function formatCpf(value: string) {
+  const digits = normalizeCpf(value);
+
+  if (digits.length <= 3) {
+    return digits;
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  }
+
+  if (digits.length <= 9) {
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  }
+
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
+function validateCpf(value: string) {
+  const digits = normalizeCpf(value);
+
+  if (digits.length !== 11 || /^(\d)\1+$/.test(digits)) {
+    return false;
+  }
+
+  const numbers = digits.split("").map(Number);
+
+  const firstCheck = numbers
+    .slice(0, 9)
+    .reduce((total, digit, index) => total + digit * (10 - index), 0);
+  const firstRemainder = (firstCheck * 10) % 11;
+  const firstDigit = firstRemainder === 10 ? 0 : firstRemainder;
+
+  if (firstDigit !== numbers[9]) {
+    return false;
+  }
+
+  const secondCheck = numbers
+    .slice(0, 10)
+    .reduce((total, digit, index) => total + digit * (11 - index), 0);
+  const secondRemainder = (secondCheck * 10) % 11;
+  const secondDigit = secondRemainder === 10 ? 0 : secondRemainder;
+
+  return secondDigit === numbers[10];
+}
+
+function validateSignupForm(formData: SignupFormData) {
+  const errors: SignupFormErrors = {};
+  const trimmedName = formData.name.trim();
+  const normalizedEmail = formData.email.trim().toLowerCase();
+  const normalizedCpf = normalizeCpf(formData.cpf);
+
+  if (!trimmedName) {
+    errors.name = "Informe seu nome.";
+  }
+
+  if (!normalizedEmail) {
+    errors.email = "Informe seu e-mail.";
+  } else if (!emailPattern.test(normalizedEmail)) {
+    errors.email = "Digite um e-mail valido.";
+  }
+
+  if (!normalizedCpf) {
+    errors.cpf = "Informe seu CPF.";
+  } else if (!validateCpf(normalizedCpf)) {
+    errors.cpf = "Digite um CPF valido.";
+  }
+
+  if (!formData.password.trim()) {
+    errors.password = "Informe uma senha.";
+  }
+
+  if (!formData.confirmPassword.trim()) {
+    errors.confirmPassword = "Repita sua senha.";
+  } else if (formData.password !== formData.confirmPassword) {
+    errors.confirmPassword = "As senhas precisam ser iguais.";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    errors.submit = "Revise os campos destacados antes de continuar.";
+  }
+
+  return errors;
+}
+
 export function CadastroUsuario() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<SignupFormData>(initialFormData);
-  const [submitError, setSubmitError] = useState("");
+  const [formErrors, setFormErrors] = useState<SignupFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (field: keyof SignupFormData, value: string) => {
+    const nextValue = field === "cpf" ? formatCpf(value) : value;
+
     setFormData((currentData) => ({
       ...currentData,
-      [field]: value,
+      [field]: nextValue,
+    }));
+
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
+      submit: undefined,
     }));
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const hasEmptyField = Object.values(formData).some((value) => !value.trim());
+    const errors = validateSignupForm(formData);
 
-    if (hasEmptyField) {
-      setSubmitError("Preencha todos os campos do cadastro para continuar.");
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitError("");
+    setFormErrors({});
 
     const signupPayload = {
       name: formData.name.trim(),
       email: formData.email.trim().toLowerCase(),
-      cpf: formData.cpf.trim(),
+      cpf: normalizeCpf(formData.cpf),
       createdAt: new Date().toISOString(),
     };
 
@@ -144,8 +251,10 @@ export function CadastroUsuario() {
                   placeholder="Ex.: Luiz Otavio"
                   className="pl-11"
                   autoComplete="name"
+                  aria-invalid={Boolean(formErrors.name)}
                 />
               </div>
+              {formErrors.name ? <p className="text-sm text-destructive">{formErrors.name}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -160,8 +269,10 @@ export function CadastroUsuario() {
                   placeholder="voce@empresa.com"
                   className="pl-11"
                   autoComplete="email"
+                  aria-invalid={Boolean(formErrors.email)}
                 />
               </div>
+              {formErrors.email ? <p className="text-sm text-destructive">{formErrors.email}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -176,8 +287,10 @@ export function CadastroUsuario() {
                   placeholder="000.000.000-00"
                   className="pl-11"
                   inputMode="numeric"
+                  aria-invalid={Boolean(formErrors.cpf)}
                 />
               </div>
+              {formErrors.cpf ? <p className="text-sm text-destructive">{formErrors.cpf}</p> : null}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -193,8 +306,10 @@ export function CadastroUsuario() {
                     placeholder="Crie uma senha"
                     className="pl-11"
                     autoComplete="new-password"
+                    aria-invalid={Boolean(formErrors.password)}
                   />
                 </div>
+                {formErrors.password ? <p className="text-sm text-destructive">{formErrors.password}</p> : null}
               </div>
 
               <div className="grid gap-2">
@@ -209,15 +324,19 @@ export function CadastroUsuario() {
                     placeholder="Repita a senha"
                     className="pl-11"
                     autoComplete="new-password"
+                    aria-invalid={Boolean(formErrors.confirmPassword)}
                   />
                 </div>
+                {formErrors.confirmPassword ? (
+                  <p className="text-sm text-destructive">{formErrors.confirmPassword}</p>
+                ) : null}
               </div>
             </div>
 
-            {submitError ? (
+            {formErrors.submit ? (
               <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
-                <AlertTitle>Cadastro incompleto</AlertTitle>
-                <AlertDescription>{submitError}</AlertDescription>
+                <AlertTitle>Cadastro invalido</AlertTitle>
+                <AlertDescription>{formErrors.submit}</AlertDescription>
               </Alert>
             ) : null}
 
