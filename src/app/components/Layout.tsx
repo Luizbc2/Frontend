@@ -83,7 +83,7 @@ function SidebarContent({
   handleLogout,
 }: SidebarContentProps) {
   const isActive = (path: string) => {
-    return currentPath === path;
+    return currentPath === path || currentPath.startsWith(`${path}/`);
   };
 
   const renderNavigationItem = (item: NavigationItem) => {

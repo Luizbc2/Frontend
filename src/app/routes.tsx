@@ -5,8 +5,11 @@ import { Layout } from "./components/Layout";
 import { AgendaTimeline } from "./pages/AgendaTimeline";
 import { AgendaLista } from "./pages/AgendaLista";
 import { Clientes } from "./pages/Clientes";
+import { ClienteFormulario } from "./pages/ClienteFormulario";
 import { Profissionais } from "./pages/Profissionais";
+import { ProfissionalFormulario } from "./pages/ProfissionalFormulario";
 import { Servicos } from "./pages/Servicos";
+import { ServicoFormulario } from "./pages/ServicoFormulario";
 import { PlanosClientes } from "./pages/PlanosClientes";
 import { Assinatura } from "./pages/Assinatura";
 import { Perfil } from "./pages/Perfil";
@@ -61,8 +64,14 @@ export const router = createBrowserRouter([
       { path: "agenda/timeline", Component: AgendaTimeline },
       { path: "agenda/lista", Component: AgendaLista },
       { path: "clientes", Component: Clientes },
+      { path: "clientes/novo", Component: ClienteFormulario },
+      { path: "clientes/:clientId/editar", Component: ClienteFormulario },
       { path: "profissionais", Component: Profissionais },
+      { path: "profissionais/novo", Component: ProfissionalFormulario },
+      { path: "profissionais/:professionalId/editar", Component: ProfissionalFormulario },
       { path: "servicos", Component: Servicos },
+      { path: "servicos/novo", Component: ServicoFormulario },
+      { path: "servicos/:serviceId/editar", Component: ServicoFormulario },
       { path: "planos-clientes", Component: PlanosClientes },
       { path: "assinatura", Component: Assinatura },
       { path: "perfil", Component: Perfil },

@@ -1,0 +1,196 @@
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ArrowLeft, Save } from "lucide-react";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
+
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { PageShell, SectionCard } from "../components/PageShell";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
+import {
+  createClient,
+  formatPhone,
+  getClientById,
+  normalizePhone,
+  updateClient,
+  validateClientForm,
+  type ClientFormData,
+  type ClientFormErrors,
+} from "../data/clients";
+
+const initialFormData: ClientFormData = {
+  name: "",
+  email: "",
+  phone: "",
+  notes: "",
+};
+
+export function ClienteFormulario() {
+  const navigate = useNavigate();
+  const params = useParams();
+  const clientId = params.clientId ? Number(params.clientId) : null;
+  const existingClient = useMemo(
+    () => (clientId === null ? null : getClientById(clientId)),
+    [clientId],
+  );
+  const [formData, setFormData] = useState<ClientFormData>(initialFormData);
+  const [formErrors, setFormErrors] = useState<ClientFormErrors>({});
+
+  const isEditing = clientId !== null;
+
+  useEffect(() => {
+    if (!existingClient) {
+      return;
+    }
+
+    setFormData({
+      name: existingClient.name,
+      email: existingClient.email,
+      phone: existingClient.phone,
+      notes: existingClient.notes,
+    });
+  }, [existingClient]);
+
+  if (isEditing && !existingClient) {
+    return <Navigate to="/clientes" replace />;
+  }
+
+  const handleChange = (field: keyof ClientFormData, value: string) => {
+    setFormData((currentData) => ({
+      ...currentData,
+      [field]: field === "phone" ? normalizePhone(value) : value,
+    }));
+
+    setFormErrors((currentErrors) => ({
+      ...currentErrors,
+      [field]: undefined,
+    }));
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const errors = validateClientForm(formData);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+
+    if (isEditing && clientId !== null) {
+      updateClient(clientId, formData);
+      navigate("/clientes", {
+        replace: true,
+        state: { notice: "Cliente atualizado com sucesso." },
+      });
+      return;
+    }
+
+    createClient(formData);
+    navigate("/clientes", {
+      replace: true,
+      state: { notice: "Cliente cadastrado com sucesso." },
+    });
+  };
+
+  const hasErrors = Object.keys(formErrors).length > 0;
+
+  return (
+    <PageShell
+      eyebrow="Clientes"
+      title={isEditing ? "Editar cliente" : "Novo cliente"}
+      description="Formulário separado da listagem para cadastrar ou editar um cliente."
+      actions={
+        <Button variant="outline" asChild>
+          <Link to="/clientes">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para listagem
+          </Link>
+        </Button>
+      }
+    >
+      <form noValidate onSubmit={handleSubmit} className="grid gap-6">
+        {hasErrors ? (
+          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
+            <AlertTitle>Formulário inválido</AlertTitle>
+            <AlertDescription>Revise os campos marcados antes de salvar.</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <SectionCard
+          title="Dados do cliente"
+          description="Todos os campos deste formulário são obrigatórios para fechar o cadastro."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-2">
+              <label htmlFor="client-name">Nome</label>
+              <Input
+                id="client-name"
+                value={formData.name}
+                onChange={(event) => handleChange("name", event.target.value)}
+                aria-invalid={Boolean(formErrors.name)}
+              />
+              {formErrors.name ? (
+                <p className="text-sm text-destructive">{formErrors.name}</p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2">
+              <label htmlFor="client-email">E-mail</label>
+              <Input
+                id="client-email"
+                type="email"
+                value={formData.email}
+                onChange={(event) => handleChange("email", event.target.value)}
+                aria-invalid={Boolean(formErrors.email)}
+              />
+              {formErrors.email ? (
+                <p className="text-sm text-destructive">{formErrors.email}</p>
+              ) : null}
+            </div>
+
+            <div className="grid gap-2 md:col-span-2">
+              <label htmlFor="client-phone">Telefone</label>
+              <Input
+                id="client-phone"
+                value={formatPhone(formData.phone)}
+                onChange={(event) => handleChange("phone", event.target.value)}
+                inputMode="numeric"
+                aria-invalid={Boolean(formErrors.phone)}
+              />
+              {formErrors.phone ? (
+                <p className="text-sm text-destructive">{formErrors.phone}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Informe o número com DDD.</p>
+              )}
+            </div>
+
+            <div className="grid gap-2 md:col-span-2">
+              <label htmlFor="client-notes">Observações</label>
+              <Textarea
+                id="client-notes"
+                value={formData.notes}
+                onChange={(event) => handleChange("notes", event.target.value)}
+                rows={4}
+                aria-invalid={Boolean(formErrors.notes)}
+              />
+              {formErrors.notes ? (
+                <p className="text-sm text-destructive">{formErrors.notes}</p>
+              ) : null}
+            </div>
+          </div>
+        </SectionCard>
+
+        <div className="flex flex-wrap gap-3">
+          <Button type="submit">
+            <Save className="h-4 w-4" />
+            {isEditing ? "Salvar alterações" : "Cadastrar cliente"}
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <Link to="/clientes">Cancelar</Link>
+          </Button>
+        </div>
+      </form>
+    </PageShell>
+  );
+}
