@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { ApiStatusCard } from "./ApiStatusCard";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 
@@ -260,6 +261,7 @@ function SidebarContent({
           <LogOut className="h-4 w-4" />
           <span>Sair</span>
         </button>
+        <ApiStatusCard />
       </div>
     </div>
   );
