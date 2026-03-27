@@ -5,9 +5,11 @@ import { getHealthStatus } from "../services/health";
 
 type ApiStatusState = "checking" | "online" | "offline";
 
+const HEALTH_CHECK_INTERVAL_MS = 30000;
+
 export function ApiStatusCard() {
   const [status, setStatus] = useState<ApiStatusState>("checking");
-  const [message, setMessage] = useState("Verificando conexão com a API...");
+  const [message, setMessage] = useState("Verificando conexao com a API...");
 
   useEffect(() => {
     let active = true;
@@ -28,14 +30,18 @@ export function ApiStatusCard() {
         }
 
         setStatus("offline");
-        setMessage("Não foi possível conectar ao backend local.");
+        setMessage("Nao foi possivel conectar ao backend local.");
       }
     }
 
     void checkHealth();
+    const intervalId = window.setInterval(() => {
+      void checkHealth();
+    }, HEALTH_CHECK_INTERVAL_MS);
 
     return () => {
       active = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -49,10 +55,20 @@ export function ApiStatusCard() {
   const label =
     status === "online" ? "API online" : status === "offline" ? "API offline" : "API verificando";
 
+  const indicatorClassName =
+    status === "online"
+      ? "bg-emerald-300"
+      : status === "offline"
+        ? "bg-red-300"
+        : "bg-white/70";
+
   return (
     <div className={`mt-4 rounded-[1rem] border px-3 py-3 text-sm ${toneClassName}`}>
       <div className="flex items-center justify-between gap-3">
-        <p className="font-medium">{label}</p>
+        <p className="flex items-center gap-2 font-medium">
+          <span className={`h-2.5 w-2.5 rounded-full ${indicatorClassName}`} />
+          <span>{label}</span>
+        </p>
         <span className="text-[0.65rem] uppercase tracking-[0.24em] opacity-75">/health</span>
       </div>
       <p className="mt-2 text-xs leading-5 opacity-90">{message}</p>
