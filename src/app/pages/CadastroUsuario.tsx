@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { signupWithApi } from "../services/auth";
+import { ApiError } from "../lib/api";
 
 const SIGNUP_STORAGE_KEY = "horarius:last-signup";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -149,6 +150,49 @@ function validateSignupForm(formData: SignupFormData) {
   return errors;
 }
 
+function mapSignupSuccessMessage(message: string) {
+  if (message === "User registered successfully.") {
+    return "Conta criada com sucesso. Agora voce ja pode entrar no painel.";
+  }
+
+  return message;
+}
+
+function mapSignupApiError(error: unknown): SignupFormErrors {
+  if (!(error instanceof ApiError)) {
+    return {
+      submit: error instanceof Error ? error.message : "Nao foi possivel concluir o cadastro agora.",
+    };
+  }
+
+  switch (error.message) {
+    case "Email is already in use.":
+      return {
+        email: "Este e-mail ja esta em uso.",
+        submit: "Use outro e-mail para continuar.",
+      };
+    case "CPF is already in use.":
+      return {
+        cpf: "Este CPF ja esta em uso.",
+        submit: "Revise o CPF informado para continuar.",
+      };
+    case "Invalid email format.":
+      return {
+        email: "Digite um e-mail valido.",
+        submit: "Revise os campos destacados antes de continuar.",
+      };
+    case "Invalid CPF.":
+      return {
+        cpf: "Digite um CPF valido.",
+        submit: "Revise os campos destacados antes de continuar.",
+      };
+    default:
+      return {
+        submit: error.message || "Nao foi possivel concluir o cadastro agora.",
+      };
+  }
+}
+
 export function CadastroUsuario() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<SignupFormData>(initialFormData);
@@ -206,14 +250,12 @@ export function CadastroUsuario() {
       navigate("/login", {
         replace: true,
         state: {
-          notice: response.message,
+          notice: mapSignupSuccessMessage(response.message),
           registeredEmail: response.user.email,
         },
       });
     } catch (error) {
-      setFormErrors({
-        submit: error instanceof Error ? error.message : "NÃ£o foi possÃ­vel concluir o cadastro agora.",
-      });
+      setFormErrors(mapSignupApiError(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -340,7 +382,7 @@ export function CadastroUsuario() {
 
             {formErrors.submit ? (
               <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
-                <AlertTitle>Cadastro invÃ¡lido</AlertTitle>
+                <AlertTitle>Nao foi possivel concluir o cadastro</AlertTitle>
                 <AlertDescription>{formErrors.submit}</AlertDescription>
               </Alert>
             ) : null}
