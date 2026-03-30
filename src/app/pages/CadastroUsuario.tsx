@@ -31,7 +31,7 @@ type SignupFormErrors = {
 const signupFeatures = [
   {
     icon: UserRound,
-    title: "Dados bÃ¡sicos",
+    title: "Dados básicos",
     description: "Nome, e-mail, CPF e senha em um fluxo direto, sem excesso de etapas.",
     iconClassName:
       "bg-[linear-gradient(135deg,rgba(89,184,171,0.96),rgba(31,109,104,0.92))] text-primary-foreground",

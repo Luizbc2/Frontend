@@ -5,11 +5,10 @@ import {
   type AuthSession,
   type AuthUser,
   getStoredToken,
-  normalizeCpf,
   persistSession,
   readStoredSession,
 } from "../lib/auth-storage";
-import { loginWithApi } from "../services/auth";
+import { loginWithApi, updateProfileWithApi } from "../services/auth";
 
 type UpdateUserProfileInput = {
   name: string;
@@ -55,17 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Nenhum usuario autenticado.");
     }
 
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, 350);
-    });
+    const response = await updateProfileWithApi(
+      {
+        name: input.name.trim(),
+        email: session.user.email,
+        cpf: input.cpf,
+        password: input.password,
+      },
+      session.token,
+    );
 
     const nextSession: AuthSession = {
       ...session,
-      user: {
-        ...session.user,
-        name: input.name.trim(),
-        cpf: normalizeCpf(input.cpf),
-      },
+      user: response.user,
     };
 
     persistSession(nextSession);
