@@ -6,8 +6,8 @@ import { AuthShowcasePanel } from "../components/auth/AuthShowcasePanel";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { getApiErrorMessage, isApiErrorWithStatus } from "../lib/api-error";
 import { signupWithApi } from "../services/auth";
-import { ApiError } from "../lib/api";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -39,14 +39,14 @@ const signupFeatures = [
   {
     icon: CalendarDays,
     title: "Fluxo separado",
-    description: "Cadastro e entrada ficam separados para deixar a experiÃªncia mais clara desde o comeÃ§o.",
+    description: "Cadastro e entrada ficam separados para deixar a experiência mais clara desde o começo.",
     iconClassName:
       "bg-[linear-gradient(135deg,rgba(211,140,86,0.94),rgba(168,103,53,0.92))] text-white",
   },
   {
     icon: ArrowRight,
     title: "Volta ao login",
-    description: "Depois do cadastro, o usuÃ¡rio retorna ao login para acessar o painel.",
+    description: "Depois do cadastro, o usuário retorna ao login para acessar o painel.",
     iconClassName:
       "bg-[linear-gradient(135deg,rgba(53,92,125,0.94),rgba(31,47,80,0.92))] text-white",
   },
@@ -123,13 +123,13 @@ function validateSignupForm(formData: SignupFormData) {
   if (!normalizedEmail) {
     errors.email = "Informe seu e-mail.";
   } else if (!emailPattern.test(normalizedEmail)) {
-    errors.email = "Digite um e-mail vÃ¡lido.";
+    errors.email = "Digite um e-mail válido.";
   }
 
   if (!normalizedCpf) {
     errors.cpf = "Informe seu CPF.";
   } else if (!validateCpf(normalizedCpf)) {
-    errors.cpf = "Digite um CPF vÃ¡lido.";
+    errors.cpf = "Digite um CPF válido.";
   }
 
   if (!formData.password.trim()) {
@@ -151,43 +151,43 @@ function validateSignupForm(formData: SignupFormData) {
 
 function mapSignupSuccessMessage(message: string) {
   if (message === "Usuário cadastrado com sucesso.") {
-    return "Conta criada com sucesso. Agora voce ja pode entrar no painel.";
+    return "Conta criada com sucesso. Agora você já pode entrar no painel.";
   }
 
   return message;
 }
 
 function mapSignupApiError(error: unknown): SignupFormErrors {
-  if (!(error instanceof ApiError)) {
+  const message = getApiErrorMessage(error, "Não foi possível concluir o cadastro agora.");
+
+  if (isApiErrorWithStatus(error, 409) && message === "E-mail já está em uso.") {
     return {
-      submit: error instanceof Error ? error.message : "Nao foi possivel concluir o cadastro agora.",
+      email: "Este e-mail já está em uso.",
+      submit: "Use outro e-mail para continuar.",
     };
   }
 
-  switch (error.message) {
-    case "E-mail já está em uso.":
-      return {
-        email: "Este e-mail ja esta em uso.",
-        submit: "Use outro e-mail para continuar.",
-      };
-    case "CPF já está em uso.":
-      return {
-        cpf: "Este CPF ja esta em uso.",
-        submit: "Revise o CPF informado para continuar.",
-      };
+  if (isApiErrorWithStatus(error, 409) && message === "CPF já está em uso.") {
+    return {
+      cpf: "Este CPF já está em uso.",
+      submit: "Revise o CPF informado para continuar.",
+    };
+  }
+
+  switch (message) {
     case "Formato de e-mail inválido.":
       return {
-        email: "Digite um e-mail valido.",
+        email: "Digite um e-mail válido.",
         submit: "Revise os campos destacados antes de continuar.",
       };
     case "CPF inválido.":
       return {
-        cpf: "Digite um CPF valido.",
+        cpf: "Digite um CPF válido.",
         submit: "Revise os campos destacados antes de continuar.",
       };
     default:
       return {
-        submit: error.message || "Nao foi possivel concluir o cadastro agora.",
+        submit: message,
       };
   }
 }
@@ -371,7 +371,7 @@ export function CadastroUsuario() {
 
             {formErrors.submit ? (
               <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
-                <AlertTitle>Nao foi possivel concluir o cadastro</AlertTitle>
+                <AlertTitle>Não foi possível concluir o cadastro</AlertTitle>
                 <AlertDescription>{formErrors.submit}</AlertDescription>
               </Alert>
             ) : null}
@@ -383,7 +383,7 @@ export function CadastroUsuario() {
               </Button>
 
               <Button asChild type="button" variant="ghost" className="w-full">
-                <Link to="/login">Ja tenho conta</Link>
+                <Link to="/login">Já tenho conta</Link>
               </Button>
             </div>
           </form>
