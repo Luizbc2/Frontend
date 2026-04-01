@@ -8,13 +8,11 @@ import { Button } from "../ui/button";
 type ProfessionalListCardProps = {
   professional: Professional;
   onDelete: (professionalId: number) => void;
-  onManageSchedule: (professionalId: number) => void;
 };
 
 export function ProfessionalListCard({
   professional,
   onDelete,
-  onManageSchedule,
 }: ProfessionalListCardProps) {
   const activeWorkDays = getActiveWorkDaysCount(professional);
   const hasSchedule = activeWorkDays > 0;
@@ -88,13 +86,11 @@ export function ProfessionalListCard({
             Editar
           </Link>
         </Button>
-        <Button
-          variant="outline"
-          className="min-w-[8.5rem] flex-1 md:flex-none"
-          onClick={() => onManageSchedule(professional.id)}
-        >
-          <Clock3 className="h-4 w-4" />
-          Horários
+        <Button variant="outline" className="min-w-[8.5rem] flex-1 md:flex-none" asChild>
+          <Link to={`/profissionais/${professional.id}/horarios`}>
+            <Clock3 className="h-4 w-4" />
+            Horários
+          </Link>
         </Button>
         <Button
           variant="outline"

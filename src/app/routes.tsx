@@ -8,6 +8,7 @@ import { Clientes } from "./pages/Clientes";
 import { ClienteFormulario } from "./pages/ClienteFormulario";
 import { Profissionais } from "./pages/Profissionais";
 import { ProfissionalFormulario } from "./pages/ProfissionalFormulario";
+import { ProfissionalHorarios } from "./pages/ProfissionalHorarios";
 import { Servicos } from "./pages/Servicos";
 import { ServicoFormulario } from "./pages/ServicoFormulario";
 import { PlanosClientes } from "./pages/PlanosClientes";
@@ -69,6 +70,7 @@ export const router = createBrowserRouter([
       { path: "profissionais", Component: Profissionais },
       { path: "profissionais/novo", Component: ProfissionalFormulario },
       { path: "profissionais/:professionalId/editar", Component: ProfissionalFormulario },
+      { path: "profissionais/:professionalId/horarios", Component: ProfissionalHorarios },
       { path: "servicos", Component: Servicos },
       { path: "servicos/novo", Component: ServicoFormulario },
       { path: "servicos/:serviceId/editar", Component: ServicoFormulario },

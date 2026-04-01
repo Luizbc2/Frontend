@@ -118,6 +118,25 @@ export function updateProfessional(professionalId: number, formData: Professiona
   saveCollection(PROFESSIONALS_STORAGE_KEY, nextProfessionals);
 }
 
+export function updateProfessionalWorkDays(professionalId: number, workDays: ProfessionalWorkDay[]) {
+  const nextProfessionals = loadProfessionals().map((professional) =>
+    professional.id === professionalId
+      ? {
+          ...professional,
+          workDays: workDays.map((workDay) => ({
+            ...workDay,
+            startTime: workDay.startTime || "09:00",
+            endTime: workDay.endTime || "18:00",
+            breakStart: workDay.breakStart || "",
+            breakEnd: workDay.breakEnd || "",
+          })),
+        }
+      : professional,
+  );
+
+  saveCollection(PROFESSIONALS_STORAGE_KEY, nextProfessionals);
+}
+
 export function deleteProfessional(professionalId: number) {
   saveCollection(
     PROFESSIONALS_STORAGE_KEY,
