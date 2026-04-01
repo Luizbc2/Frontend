@@ -79,6 +79,12 @@ export function Profissionais() {
     toast.success("Profissional removido com sucesso.");
   };
 
+  const handleManageSchedule = (professionalId: number) => {
+    const professional = professionals.find((item) => item.id === professionalId);
+
+    toast.message(`Horários de ${professional?.name ?? "profissional"} serão configurados no próximo passo.`);
+  };
+
   return (
     <>
       <PageShell
@@ -158,6 +164,7 @@ export function Profissionais() {
                     key={professional.id}
                     professional={professional}
                     onDelete={handleDelete}
+                    onManageSchedule={handleManageSchedule}
                   />
                 ))}
               </div>
