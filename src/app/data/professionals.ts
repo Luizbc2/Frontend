@@ -52,6 +52,16 @@ export const WEEK_DAYS: WeekDayKey[] = [
   "sabado",
 ];
 
+export const WEEK_DAY_LABELS: Record<WeekDayKey, string> = {
+  domingo: "Domingo",
+  segunda: "Segunda",
+  terca: "Terça",
+  quarta: "Quarta",
+  quinta: "Quinta",
+  sexta: "Sexta",
+  sabado: "Sábado",
+};
+
 const initialProfessionals: Professional[] = [];
 
 export function createDefaultWorkDays(): ProfessionalWorkDay[] {
@@ -146,6 +156,51 @@ export function deleteProfessional(professionalId: number) {
 
 export function getActiveWorkDaysCount(professional: Pick<Professional, "workDays">) {
   return professional.workDays.filter((workDay) => workDay.enabled).length;
+}
+
+export function getActiveWorkDaysSummary(professional: Pick<Professional, "workDays">) {
+  const activeDays = professional.workDays.filter((workDay) => workDay.enabled);
+
+  if (activeDays.length === 0) {
+    return "Sem dias ativos";
+  }
+
+  return activeDays.map((workDay) => WEEK_DAY_LABELS[workDay.day]).join(", ");
+}
+
+export function validateProfessionalWorkDays(workDays: ProfessionalWorkDay[]) {
+  for (const workDay of workDays) {
+    if (!workDay.enabled) {
+      continue;
+    }
+
+    if (!workDay.startTime || !workDay.endTime) {
+      return `Preencha a entrada e a saída de ${WEEK_DAY_LABELS[workDay.day]}.`;
+    }
+
+    if (workDay.endTime <= workDay.startTime) {
+      return `Em ${WEEK_DAY_LABELS[workDay.day]}, a saída precisa ser depois da entrada.`;
+    }
+
+    const hasBreakStart = Boolean(workDay.breakStart);
+    const hasBreakEnd = Boolean(workDay.breakEnd);
+
+    if (hasBreakStart !== hasBreakEnd) {
+      return `Se for usar pausa em ${WEEK_DAY_LABELS[workDay.day]}, preencha início e fim.`;
+    }
+
+    if (hasBreakStart && hasBreakEnd) {
+      if (workDay.breakEnd <= workDay.breakStart) {
+        return `Em ${WEEK_DAY_LABELS[workDay.day]}, o fim da pausa precisa ser depois do início.`;
+      }
+
+      if (workDay.breakStart <= workDay.startTime || workDay.breakEnd >= workDay.endTime) {
+        return `A pausa de ${WEEK_DAY_LABELS[workDay.day]} precisa ficar dentro do horário de trabalho.`;
+      }
+    }
+  }
+
+  return null;
 }
 
 export function validateProfessionalForm(formData: ProfessionalFormData) {

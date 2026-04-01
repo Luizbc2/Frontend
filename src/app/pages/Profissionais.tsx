@@ -84,7 +84,7 @@ export function Profissionais() {
       <PageShell
         eyebrow="Equipe"
         title="Profissionais"
-        description="Listagem da equipe com cadastro, edição e uma etapa separada para configurar horários."
+        description="Cadastre sua equipe, ajuste os dados principais e depois organize a jornada de cada profissional."
         actions={
           <Button asChild>
             <Link to="/profissionais/novo">
@@ -111,7 +111,7 @@ export function Profissionais() {
           <MetricCard
             label="Com horários"
             value={String(configuredScheduleCount)}
-            helper="Profissionais com pelo menos um dia ativo."
+            helper="Profissionais com rotina de trabalho definida."
             icon={<Clock3 className="h-5 w-5" />}
             accent="coral"
           />
@@ -119,7 +119,7 @@ export function Profissionais() {
 
         <SectionCard
           title="Equipe"
-          description="Cadastre os dados principais agora e ajuste os horários em uma etapa separada."
+          description="Os dados principais ficam aqui. Os horários de trabalho podem ser ajustados depois, profissional por profissional."
           action={
             <div className="relative w-full max-w-sm">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { PageShell, SectionCard } from "../components/PageShell";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -20,19 +21,11 @@ import {
   getActiveWorkDaysCount,
   getProfessionalById,
   updateProfessionalWorkDays,
+  validateProfessionalWorkDays,
+  WEEK_DAY_LABELS,
   type ProfessionalWorkDay,
   type WeekDayKey,
 } from "../data/professionals";
-
-const dayLabels: Record<WeekDayKey, string> = {
-  domingo: "Domingo",
-  segunda: "Segunda",
-  terca: "Terça",
-  quarta: "Quarta",
-  quinta: "Quinta",
-  sexta: "Sexta",
-  sabado: "Sábado",
-};
 
 function getInitials(name: string) {
   return name
@@ -59,6 +52,7 @@ export function ProfissionalHorarios() {
       boolean
     >,
   );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (professionalId === null || !professional) {
     return <Navigate to="/profissionais" replace />;
@@ -67,6 +61,7 @@ export function ProfissionalHorarios() {
   const activeDaysCount = getActiveWorkDaysCount({ workDays });
 
   const updateWorkDay = (day: WeekDayKey, updater: (current: ProfessionalWorkDay) => ProfessionalWorkDay) => {
+    setErrorMessage(null);
     setWorkDays((currentWorkDays) =>
       currentWorkDays.map((workDay) => (workDay.day === day ? updater(workDay) : workDay)),
     );
@@ -80,6 +75,7 @@ export function ProfissionalHorarios() {
   };
 
   const handleClear = () => {
+    setErrorMessage(null);
     setWorkDays((currentWorkDays) =>
       currentWorkDays.map((workDay) => ({
         ...workDay,
@@ -93,6 +89,13 @@ export function ProfissionalHorarios() {
   };
 
   const handleSave = () => {
+    const validationMessage = validateProfessionalWorkDays(workDays);
+
+    if (validationMessage) {
+      setErrorMessage(validationMessage);
+      return;
+    }
+
     updateProfessionalWorkDays(professional.id, workDays);
 
     navigate("/profissionais", {
@@ -105,7 +108,7 @@ export function ProfissionalHorarios() {
     <PageShell
       eyebrow="Profissionais"
       title="Horários de trabalho"
-      description="Configure os dias e horários semanais do profissional em uma etapa separada do cadastro principal."
+      description="Defina os dias e faixas de atendimento do profissional para a semana. Se quiser, também dá para registrar pausa no mesmo dia."
       actions={
         <Button variant="outline" asChild>
           <Link to="/profissionais">
@@ -115,10 +118,7 @@ export function ProfissionalHorarios() {
         </Button>
       }
     >
-      <SectionCard
-        className="overflow-hidden p-0"
-        contentClassName="mt-0"
-      >
+      <SectionCard className="overflow-hidden p-0" contentClassName="mt-0">
         <div className="rounded-[1.8rem] bg-[linear-gradient(135deg,#274f4b,#4f8e84)] p-6 text-white">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -127,7 +127,7 @@ export function ProfissionalHorarios() {
               </div>
               <div>
                 <p className="text-2xl font-semibold">{professional.name}</p>
-                <p className="text-base text-white/85">Configurar horários de trabalho semanais</p>
+                <p className="text-base text-white/85">Rotina semanal de atendimento</p>
               </div>
             </div>
 
@@ -139,6 +139,13 @@ export function ProfissionalHorarios() {
         </div>
 
         <div className="space-y-4 p-6">
+          {errorMessage ? (
+            <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
+              <AlertTitle>Revise os horários</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          ) : null}
+
           {workDays.map((workDay) => {
             const isBreakOpen = expandedBreaks[workDay.day] ?? false;
 
@@ -150,7 +157,7 @@ export function ProfissionalHorarios() {
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
                   <div className="flex min-w-[10rem] items-center gap-4">
                     <span className="h-10 w-1 rounded-full bg-primary/80" />
-                    <p className="text-2xl font-semibold text-foreground">{dayLabels[workDay.day]}</p>
+                    <p className="text-2xl font-semibold text-foreground">{WEEK_DAY_LABELS[workDay.day]}</p>
                   </div>
 
                   <div className="flex items-center gap-3">
@@ -211,7 +218,7 @@ export function ProfissionalHorarios() {
                       onClick={() => toggleBreakSection(workDay.day)}
                     >
                       <Coffee className="h-4 w-4" />
-                      <span className="sr-only">Configurar pausa em {dayLabels[workDay.day]}</span>
+                      <span className="sr-only">Ajustar pausa em {WEEK_DAY_LABELS[workDay.day]}</span>
                       {isBreakOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </Button>
                   </div>
@@ -261,7 +268,7 @@ export function ProfissionalHorarios() {
                         <Clock3 className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       </div>
 
-                      <p className="text-sm text-muted-foreground">(Opcional)</p>
+                      <p className="text-sm text-muted-foreground">Opcional</p>
                     </div>
                   </div>
                 ) : null}
@@ -271,7 +278,12 @@ export function ProfissionalHorarios() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(74,52,34,0.08)] bg-white/75 px-6 py-5">
-          <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={handleClear}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            onClick={handleClear}
+          >
             <Trash2 className="h-4 w-4" />
             Limpar
           </Button>
@@ -282,7 +294,7 @@ export function ProfissionalHorarios() {
             </Button>
             <Button type="button" onClick={handleSave}>
               <Save className="h-4 w-4" />
-              Salvar horário
+              Salvar horários
             </Button>
           </div>
         </div>

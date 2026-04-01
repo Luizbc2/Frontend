@@ -106,7 +106,7 @@ export function ProfissionalFormulario() {
     <PageShell
       eyebrow="Profissionais"
       title={isEditing ? "Editar profissional" : "Novo profissional"}
-      description="Cadastre os dados principais do profissional. Os horários serão configurados em uma etapa separada."
+      description="Cadastre os dados principais do profissional. Depois você pode ajustar os horários de trabalho com mais calma."
       actions={
         <Button variant="outline" asChild>
           <Link to="/profissionais">
@@ -126,7 +126,7 @@ export function ProfissionalFormulario() {
 
         <SectionCard
           title="Dados do profissional"
-          description="Preencha os dados principais agora. Depois você poderá configurar os horários de trabalho separadamente."
+          description="Aqui ficam os dados principais da pessoa. Os horários não entram neste formulário para não misturar cadastro com agenda."
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
