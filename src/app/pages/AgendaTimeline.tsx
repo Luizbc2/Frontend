@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import {
   CalendarCheck2,
@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  MoreVertical,
   RefreshCw,
   Users,
 } from "lucide-react";
@@ -29,90 +30,32 @@ type Appointment = {
   time: string;
   client: string;
   service: string;
-  professional: string;
+  professionalId: string;
   status: AppointmentStatus;
-  duration: number;
+  durationInMinutes: number;
 };
 
-const timeSlots = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-  "18:30",
-  "19:00",
-];
-
-const appointments = [
-  {
-    id: 1,
-    time: "09:00",
-    client: "Murilo Pereira Macedo",
-    service: "Corte + barba",
-    professional: "ricardo",
-    status: "confirmado",
-    duration: 2,
-  },
-  {
-    id: 2,
-    time: "09:50",
-    client: "Pedro Santos",
-    service: "Barba",
-    professional: "ricardo",
-    status: "confirmado",
-    duration: 1,
-  },
-  {
-    id: 3,
-    time: "10:30",
-    client: "Marcos Lima",
-    service: "Corte",
-    professional: "ricardo",
-    status: "confirmado",
-    duration: 1,
-  },
-  {
-    id: 4,
-    time: "11:10",
-    client: "Rafael Costa",
-    service: "Sobrancelha",
-    professional: "ricardo",
-    status: "pendente",
-    duration: 1,
-  },
-] satisfies Appointment[];
+const DAY_START_HOUR = 9;
+const DAY_END_HOUR = 19;
+const SLOT_INTERVAL_MINUTES = 10;
+const SLOT_HEIGHT = 22;
 
 const statusStyles: Record<
   AppointmentStatus,
   { card: string; badge: string; label: string }
 > = {
   confirmado: {
-    card: "border-emerald-300 bg-emerald-100/80",
+    card: "border-emerald-300 bg-emerald-100/85",
     badge: "border-emerald-300 bg-emerald-50 text-emerald-800",
     label: "Confirmado",
   },
   pendente: {
-    card: "border-amber-300 bg-amber-100/85",
+    card: "border-amber-300 bg-amber-100/90",
     badge: "border-amber-300 bg-amber-50 text-amber-800",
     label: "Pendente",
   },
   cancelado: {
-    card: "border-rose-300 bg-rose-100/80",
+    card: "border-rose-300 bg-rose-100/85",
     badge: "border-rose-300 bg-rose-50 text-rose-700",
     label: "Cancelado",
   },
@@ -127,6 +70,97 @@ function getInitials(name: string) {
     .join("");
 }
 
+function padTime(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function generateTimeSlots() {
+  const slots: string[] = [];
+  const totalMinutes = (DAY_END_HOUR - DAY_START_HOUR) * 60;
+
+  for (let minutes = 0; minutes < totalMinutes; minutes += SLOT_INTERVAL_MINUTES) {
+    const hour = DAY_START_HOUR + Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    slots.push(`${padTime(hour)}:${padTime(minute)}`);
+  }
+
+  return slots;
+}
+
+function timeToMinutes(time: string) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function createTimelineAppointments(professionals: Professional[]): Appointment[] {
+  if (professionals.length === 0) {
+    return [];
+  }
+
+  const [firstProfessional, secondProfessional] = professionals;
+
+  return [
+    {
+      id: 1,
+      time: "09:00",
+      client: "Murilo Pereira Macedo",
+      service: "Corte + barba",
+      professionalId: String(firstProfessional.id),
+      status: "confirmado",
+      durationInMinutes: 60,
+    },
+    {
+      id: 2,
+      time: "09:50",
+      client: "Pedro Santos",
+      service: "Barba",
+      professionalId: String(firstProfessional.id),
+      status: "confirmado",
+      durationInMinutes: 30,
+    },
+    {
+      id: 3,
+      time: "10:30",
+      client: "Marcos Lima",
+      service: "Corte",
+      professionalId: String(firstProfessional.id),
+      status: "confirmado",
+      durationInMinutes: 30,
+    },
+    {
+      id: 4,
+      time: "11:10",
+      client: "Rafael Costa",
+      service: "Sobrancelha",
+      professionalId: String(firstProfessional.id),
+      status: "pendente",
+      durationInMinutes: 30,
+    },
+    ...(secondProfessional
+      ? [
+          {
+            id: 5,
+            time: "09:30",
+            client: "Juliana Barros",
+            service: "Escova",
+            professionalId: String(secondProfessional.id),
+            status: "confirmado" as const,
+            durationInMinutes: 40,
+          },
+          {
+            id: 6,
+            time: "11:00",
+            client: "Carla Souza",
+            service: "Corte feminino",
+            professionalId: String(secondProfessional.id),
+            status: "pendente" as const,
+            durationInMinutes: 50,
+          },
+        ]
+      : []),
+  ];
+}
+
 export function AgendaTimeline() {
   const [selectedDate, setSelectedDate] = useState(new Date("2026-04-01T10:00:00"));
   const [selectedProfessional, setSelectedProfessional] = useState("todos");
@@ -137,34 +171,64 @@ export function AgendaTimeline() {
     setProfessionals(loadProfessionals());
   }, []);
 
+  const timeSlots = useMemo(() => generateTimeSlots(), []);
+
   const visibleProfessionals = useMemo(() => {
     if (selectedProfessional === "todos") {
       return professionals;
     }
 
     return professionals.filter((professional) => String(professional.id) === selectedProfessional);
-  }, [selectedProfessional]);
+  }, [professionals, selectedProfessional]);
 
-  const filteredAppointments = appointments.filter((appointment) => {
-    if (selectedProfessional !== "todos" && appointment.professional !== selectedProfessional) {
-      return false;
-    }
+  const allAppointments = useMemo(() => createTimelineAppointments(professionals), [professionals]);
 
-    if (selectedStatus !== "todos" && appointment.status !== selectedStatus) {
-      return false;
-    }
+  const filteredAppointments = useMemo(
+    () =>
+      allAppointments.filter((appointment) => {
+        if (selectedProfessional !== "todos" && appointment.professionalId !== selectedProfessional) {
+          return false;
+        }
 
-    return professionals.some((professional) => String(professional.id) === appointment.professional);
-  });
+        if (selectedStatus !== "todos" && appointment.status !== selectedStatus) {
+          return false;
+        }
 
-  const appointmentMap = new Map(
-    filteredAppointments.map((appointment) => [`${appointment.professional}-${appointment.time}`, appointment]),
+        return true;
+      }),
+    [allAppointments, selectedProfessional, selectedStatus],
   );
+
+  const appointmentsByProfessional = useMemo(() => {
+    const grouped = new Map<string, Appointment[]>();
+
+    for (const professional of visibleProfessionals) {
+      grouped.set(String(professional.id), []);
+    }
+
+    for (const appointment of filteredAppointments) {
+      if (!grouped.has(appointment.professionalId)) {
+        continue;
+      }
+
+      grouped.get(appointment.professionalId)?.push(appointment);
+    }
+
+    for (const appointments of grouped.values()) {
+      appointments.sort((left, right) => timeToMinutes(left.time) - timeToMinutes(right.time));
+    }
+
+    return grouped;
+  }, [filteredAppointments, visibleProfessionals]);
 
   const confirmedCount = filteredAppointments.filter((appointment) => appointment.status === "confirmado").length;
   const pendingCount = filteredAppointments.filter((appointment) => appointment.status === "pendente").length;
   const occupancyBase = visibleProfessionals.length * timeSlots.length;
   const occupancy = occupancyBase > 0 ? Math.round((filteredAppointments.length / occupancyBase) * 100) : 0;
+
+  const timelineGridStyle = {
+    gridTemplateRows: `repeat(${timeSlots.length}, ${SLOT_HEIGHT}px)`,
+  } satisfies CSSProperties;
 
   const formatTitleDate = (date: Date) =>
     date.toLocaleDateString("pt-BR", {
@@ -295,7 +359,7 @@ export function AgendaTimeline() {
 
       <SectionCard
         title="Grade da agenda"
-        description="Cada coluna representa um profissional e cada linha representa um horário disponível no dia."
+        description="Cada coluna representa um profissional e os cartões entram na altura exata do horário agendado."
       >
         {professionals.length === 0 ? (
           <EmptyStatePanel
@@ -340,34 +404,71 @@ export function AgendaTimeline() {
                   </div>
                 ))}
 
-                {timeSlots.map((time) => (
-                  <>
-                    <div
-                      key={`time-${time}`}
-                      className="border-b border-r border-[rgba(74,52,34,0.08)] px-4 py-5 text-sm font-medium text-muted-foreground"
-                    >
-                      {time}
-                    </div>
-
-                    {visibleProfessionals.map((professional) => {
-                      const appointment = appointmentMap.get(`${professional.id}-${time}`);
+                <div className="border-r border-[rgba(74,52,34,0.08)] bg-white/45">
+                  <div className="grid" style={timelineGridStyle}>
+                    {timeSlots.map((time) => {
+                      const shouldLabel = Number(time.split(":")[1]) % 30 === 0;
 
                       return (
                         <div
-                          key={`${professional.id}-${time}`}
-                          className="border-b border-r border-[rgba(74,52,34,0.08)] px-3 py-2 last:border-r-0"
+                          key={time}
+                          className="border-b border-[rgba(74,52,34,0.08)] px-4 text-sm text-muted-foreground"
                         >
-                          {appointment ? (
+                          {shouldLabel ? time : ""}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {visibleProfessionals.map((professional) => {
+                  const columnAppointments = appointmentsByProfessional.get(String(professional.id)) ?? [];
+
+                  return (
+                    <div
+                      key={`column-${professional.id}`}
+                      className="relative border-r border-[rgba(74,52,34,0.08)] bg-white/35 last:border-r-0"
+                    >
+                      <div className="grid" style={timelineGridStyle}>
+                        {timeSlots.map((time) => (
+                          <div
+                            key={`${professional.id}-${time}-slot`}
+                            className="border-b border-[rgba(74,52,34,0.08)]"
+                          />
+                        ))}
+                      </div>
+
+                      <div
+                        className="absolute inset-0 grid px-2 py-0.5"
+                        style={timelineGridStyle}
+                      >
+                        {columnAppointments.map((appointment) => {
+                          const startIndex = Math.max(
+                            0,
+                            Math.floor(
+                              (timeToMinutes(appointment.time) - DAY_START_HOUR * 60) / SLOT_INTERVAL_MINUTES,
+                            ),
+                          );
+                          const rowSpan = Math.max(
+                            1,
+                            Math.ceil(appointment.durationInMinutes / SLOT_INTERVAL_MINUTES),
+                          );
+
+                          return (
                             <div
+                              key={appointment.id}
+                              style={{
+                                gridRow: `${startIndex + 1} / span ${rowSpan}`,
+                              }}
                               className={cn(
-                                "rounded-[1rem] border px-3 py-3 shadow-[0_16px_35px_-28px_rgba(73,47,22,0.45)]",
+                                "mx-0.5 my-[2px] rounded-[1rem] border px-3 py-2 shadow-[0_16px_35px_-28px_rgba(73,47,22,0.45)]",
                                 statusStyles[appointment.status].card,
                               )}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <p className="text-xl font-semibold text-foreground">{appointment.time}</p>
-                                  <p className="mt-1 truncate text-lg text-foreground">{appointment.client}</p>
+                                  <p className="text-lg font-semibold text-foreground">{appointment.time}</p>
+                                  <p className="truncate text-base text-foreground">{appointment.client}</p>
                                   <p className="mt-1 text-sm text-muted-foreground">{appointment.service}</p>
                                 </div>
                                 <button
@@ -375,14 +476,14 @@ export function AgendaTimeline() {
                                   className="text-muted-foreground transition hover:text-foreground"
                                   aria-label="Ações do agendamento"
                                 >
-                                  •••
+                                  <MoreVertical className="h-4 w-4" />
                                 </button>
                               </div>
 
-                              <div className="mt-3">
+                              <div className="mt-2">
                                 <span
                                   className={cn(
-                                    "inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em]",
+                                    "inline-flex rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]",
                                     statusStyles[appointment.status].badge,
                                   )}
                                 >
@@ -390,14 +491,12 @@ export function AgendaTimeline() {
                                 </span>
                               </div>
                             </div>
-                          ) : (
-                            <div className="min-h-[74px] rounded-[1rem] border border-dashed border-[rgba(74,52,34,0.12)] bg-white/35" />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </>
-                ))}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
