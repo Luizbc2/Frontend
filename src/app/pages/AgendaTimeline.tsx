@@ -8,12 +8,30 @@ import {
   ChevronRight,
   Clock3,
   MoreVertical,
+  Pencil,
   RefreshCw,
+  Trash2,
   Users,
 } from "lucide-react";
 
 import { Button } from "../components/ui/button";
 import { EmptyStatePanel, MetricCard, PageShell, SectionCard } from "../components/PageShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import {
   Select,
   SelectContent,
@@ -31,6 +49,14 @@ type Appointment = {
   time: string;
   client: string;
   service: string;
+  professionalId: string;
+  status: AppointmentStatus;
+};
+
+type AppointmentDraft = {
+  client: string;
+  service: string;
+  time: string;
   professionalId: string;
   status: AppointmentStatus;
 };
@@ -164,6 +190,14 @@ export function AgendaTimeline() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [draggedAppointmentId, setDraggedAppointmentId] = useState<number | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
+  const [editingAppointmentId, setEditingAppointmentId] = useState<number | null>(null);
+  const [appointmentDraft, setAppointmentDraft] = useState<AppointmentDraft>({
+    client: "",
+    service: "",
+    time: "09:00",
+    professionalId: "",
+    status: "confirmado",
+  });
 
   useEffect(() => {
     setProfessionals(loadProfessionals());
@@ -256,8 +290,80 @@ export function AgendaTimeline() {
     setSelectedDate(new Date());
   };
 
+  const resetEditDialog = () => {
+    setEditingAppointmentId(null);
+    setAppointmentDraft({
+      client: "",
+      service: "",
+      time: "09:00",
+      professionalId: "",
+      status: "confirmado",
+    });
+  };
+
+  const openEditDialog = (appointment: Appointment) => {
+    setEditingAppointmentId(appointment.id);
+    setAppointmentDraft({
+      client: appointment.client,
+      service: appointment.service,
+      time: appointment.time,
+      professionalId: appointment.professionalId,
+      status: appointment.status,
+    });
+  };
+
+  const handleDeleteAppointment = (appointmentId: number) => {
+    setAppointments((currentAppointments) =>
+      currentAppointments.filter((appointment) => appointment.id !== appointmentId),
+    );
+    toast.success("Agendamento removido.");
+  };
+
   const handleDropAppointment = (professionalId: string, time: string) => {
     if (draggedAppointmentId === null) {
+      return;
+    }
+
+    const draggedAppointment = appointments.find((appointment) => appointment.id === draggedAppointmentId);
+
+    if (!draggedAppointment) {
+      setDraggedAppointmentId(null);
+      setDragOverSlot(null);
+      return;
+    }
+
+    const targetAppointment = appointments.find(
+      (appointment) =>
+        appointment.id !== draggedAppointmentId &&
+        appointment.professionalId === professionalId &&
+        appointment.time === time,
+    );
+
+    if (targetAppointment) {
+      setAppointments((currentAppointments) =>
+        currentAppointments.map((appointment) => {
+          if (appointment.id === draggedAppointmentId) {
+            return {
+              ...appointment,
+              professionalId: targetAppointment.professionalId,
+              time: targetAppointment.time,
+            };
+          }
+
+          if (appointment.id === targetAppointment.id) {
+            return {
+              ...appointment,
+              professionalId: draggedAppointment.professionalId,
+              time: draggedAppointment.time,
+            };
+          }
+
+          return appointment;
+        }),
+      );
+
+      setDraggedAppointmentId(null);
+      setDragOverSlot(null);
       return;
     }
 
@@ -295,6 +401,50 @@ export function AgendaTimeline() {
 
     setDraggedAppointmentId(null);
     setDragOverSlot(null);
+  };
+
+  const handleSaveAppointmentEdit = () => {
+    if (editingAppointmentId === null) {
+      return;
+    }
+
+    const normalizedClient = appointmentDraft.client.trim();
+    const normalizedService = appointmentDraft.service.trim();
+
+    if (!normalizedClient || !normalizedService) {
+      toast.error("Preencha cliente e servico.");
+      return;
+    }
+
+    const conflict = appointments.find(
+      (appointment) =>
+        appointment.id !== editingAppointmentId &&
+        appointment.professionalId === appointmentDraft.professionalId &&
+        appointment.time === appointmentDraft.time,
+    );
+
+    if (conflict) {
+      toast.error("Ja existe um agendamento nesse horario.");
+      return;
+    }
+
+    setAppointments((currentAppointments) =>
+      currentAppointments.map((appointment) =>
+        appointment.id === editingAppointmentId
+          ? {
+              ...appointment,
+              client: normalizedClient,
+              service: normalizedService,
+              time: appointmentDraft.time,
+              professionalId: appointmentDraft.professionalId,
+              status: appointmentDraft.status,
+            }
+          : appointment,
+      ),
+    );
+
+    toast.success("Agendamento atualizado.");
+    resetEditDialog();
   };
 
   return (
@@ -526,6 +676,16 @@ export function AgendaTimeline() {
                             }}
                             draggable
                             onDragStart={() => setDraggedAppointmentId(appointment.id)}
+                            onDragOver={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              setDragOverSlot(`${appointment.professionalId}-${appointment.time}`);
+                            }}
+                            onDrop={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              handleDropAppointment(appointment.professionalId, appointment.time);
+                            }}
                             onDragEnd={() => {
                               setDraggedAppointmentId(null);
                               setDragOverSlot(null);
@@ -542,13 +702,33 @@ export function AgendaTimeline() {
                                   </p>
                                   <p className="mt-1 truncate text-sm text-muted-foreground">{appointment.service}</p>
                                 </div>
-                                <button
-                                  type="button"
-                                  className="text-muted-foreground transition hover:text-foreground"
-                                  aria-label="Ações do agendamento"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="rounded-full p-1 text-muted-foreground transition hover:bg-black/5 hover:text-foreground"
+                                      aria-label="Ações do agendamento"
+                                      draggable={false}
+                                      onPointerDown={(event) => event.stopPropagation()}
+                                      onClick={(event) => event.stopPropagation()}
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onSelect={() => openEditDialog(appointment)}>
+                                      <Pencil className="h-4 w-4" />
+                                      Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      variant="destructive"
+                                      onSelect={() => handleDeleteAppointment(appointment.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      Excluir
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
                           </div>
@@ -562,6 +742,127 @@ export function AgendaTimeline() {
           </div>
         )}
       </SectionCard>
+      <Dialog open={editingAppointmentId !== null} onOpenChange={(open) => (!open ? resetEditDialog() : undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar agendamento</DialogTitle>
+            <DialogDescription>
+              Ajuste cliente, servico, horario, profissional e status sem sair da timeline.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="timeline-client">Cliente</Label>
+              <Input
+                id="timeline-client"
+                value={appointmentDraft.client}
+                onChange={(event) =>
+                  setAppointmentDraft((currentDraft) => ({
+                    ...currentDraft,
+                    client: event.target.value,
+                  }))
+                }
+                placeholder="Nome do cliente"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timeline-service">Servico</Label>
+              <Input
+                id="timeline-service"
+                value={appointmentDraft.service}
+                onChange={(event) =>
+                  setAppointmentDraft((currentDraft) => ({
+                    ...currentDraft,
+                    service: event.target.value,
+                  }))
+                }
+                placeholder="Servico agendado"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="timeline-time">Horario</Label>
+                <Select
+                  value={appointmentDraft.time}
+                  onValueChange={(value) =>
+                    setAppointmentDraft((currentDraft) => ({
+                      ...currentDraft,
+                      time: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger id="timeline-time">
+                    <SelectValue placeholder="Escolha o horario" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timeline-professional">Profissional</Label>
+                <Select
+                  value={appointmentDraft.professionalId}
+                  onValueChange={(value) =>
+                    setAppointmentDraft((currentDraft) => ({
+                      ...currentDraft,
+                      professionalId: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger id="timeline-professional">
+                    <SelectValue placeholder="Escolha o profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {professionals.map((professional) => (
+                      <SelectItem key={professional.id} value={String(professional.id)}>
+                        {professional.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="timeline-status">Status</Label>
+              <Select
+                value={appointmentDraft.status}
+                onValueChange={(value: AppointmentStatus) =>
+                  setAppointmentDraft((currentDraft) => ({
+                    ...currentDraft,
+                    status: value,
+                  }))
+                }
+              >
+                <SelectTrigger id="timeline-status">
+                  <SelectValue placeholder="Escolha o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="confirmado">Confirmado</SelectItem>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={resetEditDialog}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveAppointmentEdit}>Salvar alteracoes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Toaster position="bottom-left" closeButton richColors />
     </PageShell>
   );
