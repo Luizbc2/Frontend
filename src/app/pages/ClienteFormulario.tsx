@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowLeft, Save } from "lucide-react";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 
+import { useAuth } from "../auth/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { PageShell, SectionCard } from "../components/PageShell";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import {
-  createClient,
   formatPhone,
   getClientById,
   normalizePhone,
@@ -17,6 +17,8 @@ import {
   type ClientFormData,
   type ClientFormErrors,
 } from "../data/clients";
+import { getApiErrorMessage } from "../lib/api-error";
+import { createClientsService } from "../services/clients";
 
 const initialFormData: ClientFormData = {
   name: "",
@@ -26,6 +28,7 @@ const initialFormData: ClientFormData = {
 };
 
 export function ClienteFormulario() {
+  const { token } = useAuth();
   const navigate = useNavigate();
   const params = useParams();
   const clientId = params.clientId ? Number(params.clientId) : null;
@@ -35,6 +38,8 @@ export function ClienteFormulario() {
   );
   const [formData, setFormData] = useState<ClientFormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<ClientFormErrors>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEditing = clientId !== null;
 
@@ -65,13 +70,16 @@ export function ClienteFormulario() {
       ...currentErrors,
       [field]: undefined,
     }));
+
+    setSubmitError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const errors = validateClientForm(formData);
     setFormErrors(errors);
+    setSubmitError(null);
 
     if (Object.keys(errors).length > 0) {
       return;
@@ -86,11 +94,31 @@ export function ClienteFormulario() {
       return;
     }
 
-    createClient(formData);
-    navigate("/clientes", {
-      replace: true,
-      state: { notice: "Cliente cadastrado com sucesso." },
-    });
+    if (!token) {
+      setSubmitError("Sua sessao expirou. Entre novamente para continuar.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const clientsService = createClientsService(token);
+      const response = await clientsService.create({
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: formData.phone.trim(),
+        notes: formData.notes.trim(),
+      });
+
+      navigate("/clientes", {
+        replace: true,
+        state: { notice: response.message },
+      });
+    } catch (error) {
+      setSubmitError(getApiErrorMessage(error, "Nao foi possivel cadastrar o cliente."));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const hasErrors = Object.keys(formErrors).length > 0;
@@ -99,7 +127,7 @@ export function ClienteFormulario() {
     <PageShell
       eyebrow="Clientes"
       title={isEditing ? "Editar cliente" : "Novo cliente"}
-      description="Formulário separado da listagem para cadastrar ou editar um cliente."
+      description="Formulario separado da listagem para cadastrar ou editar um cliente."
       actions={
         <Button variant="outline" asChild>
           <Link to="/clientes">
@@ -112,14 +140,21 @@ export function ClienteFormulario() {
       <form noValidate onSubmit={handleSubmit} className="grid gap-6">
         {hasErrors ? (
           <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
-            <AlertTitle>Formulário inválido</AlertTitle>
+            <AlertTitle>Formulario invalido</AlertTitle>
             <AlertDescription>Revise os campos marcados antes de salvar.</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {submitError ? (
+          <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
+            <AlertTitle>Nao foi possivel salvar</AlertTitle>
+            <AlertDescription>{submitError}</AlertDescription>
           </Alert>
         ) : null}
 
         <SectionCard
           title="Dados do cliente"
-          description="Todos os campos deste formulário são obrigatórios para fechar o cadastro."
+          description="Todos os campos deste formulario sao obrigatorios para fechar o cadastro."
         >
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
@@ -130,9 +165,7 @@ export function ClienteFormulario() {
                 onChange={(event) => handleChange("name", event.target.value)}
                 aria-invalid={Boolean(formErrors.name)}
               />
-              {formErrors.name ? (
-                <p className="text-sm text-destructive">{formErrors.name}</p>
-              ) : null}
+              {formErrors.name ? <p className="text-sm text-destructive">{formErrors.name}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -144,9 +177,7 @@ export function ClienteFormulario() {
                 onChange={(event) => handleChange("email", event.target.value)}
                 aria-invalid={Boolean(formErrors.email)}
               />
-              {formErrors.email ? (
-                <p className="text-sm text-destructive">{formErrors.email}</p>
-              ) : null}
+              {formErrors.email ? <p className="text-sm text-destructive">{formErrors.email}</p> : null}
             </div>
 
             <div className="grid gap-2 md:col-span-2">
@@ -161,12 +192,12 @@ export function ClienteFormulario() {
               {formErrors.phone ? (
                 <p className="text-sm text-destructive">{formErrors.phone}</p>
               ) : (
-                <p className="text-sm text-muted-foreground">Informe o número com DDD.</p>
+                <p className="text-sm text-muted-foreground">Informe o numero com DDD.</p>
               )}
             </div>
 
             <div className="grid gap-2 md:col-span-2">
-              <label htmlFor="client-notes">Observações</label>
+              <label htmlFor="client-notes">Observacoes</label>
               <Textarea
                 id="client-notes"
                 value={formData.notes}
@@ -174,17 +205,15 @@ export function ClienteFormulario() {
                 rows={4}
                 aria-invalid={Boolean(formErrors.notes)}
               />
-              {formErrors.notes ? (
-                <p className="text-sm text-destructive">{formErrors.notes}</p>
-              ) : null}
+              {formErrors.notes ? <p className="text-sm text-destructive">{formErrors.notes}</p> : null}
             </div>
           </div>
         </SectionCard>
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit">
+          <Button type="submit" disabled={isSubmitting}>
             <Save className="h-4 w-4" />
-            {isEditing ? "Salvar alterações" : "Cadastrar cliente"}
+            {isSubmitting ? "Salvando..." : isEditing ? "Salvar alteracoes" : "Cadastrar cliente"}
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link to="/clientes">Cancelar</Link>
