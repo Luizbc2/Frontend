@@ -26,6 +26,7 @@ export function Clientes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadClientsFromApi = async (
@@ -48,6 +49,8 @@ export function Clientes() {
       });
 
       setClients(response.data);
+      setCurrentPage(response.page);
+      setPageSize(response.limit);
       setTotalItems(response.totalItems);
       setTotalPages(response.totalPages);
     } finally {
@@ -230,6 +233,7 @@ export function Clientes() {
                 totalPages={totalPages}
                 totalItems={totalItems}
                 visibleItems={clients.length}
+                pageSize={pageSize}
                 onPrevious={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 onNext={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               />
