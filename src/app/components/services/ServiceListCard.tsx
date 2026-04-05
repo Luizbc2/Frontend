@@ -1,11 +1,20 @@
 import { Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router";
 
-import { formatCurrency, type Service } from "../../data/services";
+import { formatCurrency } from "../../data/services";
 import { Button } from "../ui/button";
 
+type ServiceListView = {
+  id: number;
+  name: string;
+  category: string;
+  durationMinutes: number;
+  price: number;
+  description: string;
+};
+
 type ServiceListCardProps = {
-  service: Service;
+  service: ServiceListView;
   onDelete: (serviceId: number) => void;
 };
 
